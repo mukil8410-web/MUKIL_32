@@ -1,4 +1,4 @@
-name: YouTube Live Stream from Google Drive
+name: YouTube Live Stream with Intro Outro and Logo
 
 on:
   workflow_dispatch:
@@ -7,12 +7,60 @@ jobs:
   stream:
     runs-on: ubuntu-latest
     steps:
-      - name: Download Video from Google Drive
-        run: |
-          sudo apt-get update && sudo apt-get install -y ffmpeg python3-pip
-          pip3 install gdown
-          gdown 1-Dr_eOLCMxqP7puqyDtydyKhmduw15SF -O video.mp4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-      - name: Start Live Stream
+      - name: Install FFmpeg and Tools
         run: |
-          ffmpeg -re -stream_loop -1 -i video.mp4 -c:v libx264 -preset ultrafast -b:v 2500k -maxrate 2500k -bufsize 5000k -pix_fmt yuv420p -g 50 -c:a aac -b:a 128k -ar 44100 -f flv "rtmp://a.rtmp.youtube.com/live2/${{ secrets.YOUTUBE_STREAM_KEY }}"
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg python3-pip
+          pip3 install gdown
+
+      - name: Download Files from Google Drive
+        run: |
+          # 1. Main Video download (2h 33m video)
+          gdown "https://drive.google.com/uc?id=11WI3rYpe5tRW1p1FVj3sRu2eRep0eF92" -O main_video.mp4
+
+          # 2. Logo Image download
+          gdown "https://drive.google.com/uc?id=18STkB9gIB6xEZq3ZUbx8usnEANucjjuH" -O logo.png
+
+          # 3. Intro Audio download (Neeku anuppiya audio link)
+          gdown "https://drive.google.com/uc?id=1BXzP6HRt9F8VGa8APuxGtCgOaupygrUS" -O intro_audio.mp3
+
+          # 4. Outro Audio download (Ade audio-ve outro-vukku use seikirom)
+          gdown "https://drive.google.com/uc?id=1BXzP6HRt9F8VGa8APuxGtCgOaupygrUS" -O outro_audio.mp3
+
+      - name: Create Intro Video with Fullscreen Logo
+        run: |
+          # Intro Audio play aagum pothu logo full screen-la (1920x1080) background-a theriyum
+          ffmpeg -loop 1 -i logo.png -i intro_audio.mp3 -c:v libx264 -tune stillimage -c:a aac -b:a 128k -pix_fmt yuv420p -shortest -vf "scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2" intro_video.mp4
+
+      - name: Create Outro Video with Fullscreen Logo
+        run: |
+          # Outro Audio play aagum pothu logo full screen-la (1920x1080) background-a theriyum
+          ffmpeg -loop 1 -i logo.png -i outro_audio.mp3 -c:v libx264 -tune stillimage -c:a aac -b:a 128k -pix_fmt yuv420p -shortest -vf "scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2" outro_video.mp4
+
+      - name: Prepare Main Video with Watermark Logo
+        run: |
+          # Main Video-la top-left corner-la logo overlay panny ready panrom
+          ffmpeg -i main_video.mp4 -i logo.png -filter_complex "[0:v][1:v]overlay=30:30[v]" -map "[v]" -map 0:a -c:v libx264 -preset ultrafast -c:a copy main_logo_video.mp4
+
+      - name: Merge Intro, Main Video and Outro
+        run: |
+          # Moonu video-vaiyum varisaiyaaka merge pannugirom
+          echo "file 'intro_video.mp4'" > playlist.txt
+          echo "file 'main_logo_video.mp4'" >> playlist.txt
+          echo "file 'outro_video.mp4'" >> playlist.txt
+
+          ffmpeg -f concat -safe 0 -i playlist.txt -c copy full_master_video.mp4
+
+      - name: Start Continuous Live Stream
+        run: |
+          STREAM_KEY="${{ secrets.YOUTUBE_STREAM_KEY }}"
+          STREAM_URL="rtmp://a.rtmp.youtube.com/live2"
+
+          ffmpeg -re -stream_loop -1 -i full_master_video.mp4 \
+          -c:v libx264 -preset ultrafast -b:v 3000k -maxrate 3000k -bufsize 6000k \
+          -pix_fmt yuv420p -g 60 \
+          -c:a aac -b:a 128k -ar 44100 \
+          -f flv "$STREAM_URL/$STREAM_KEY"
