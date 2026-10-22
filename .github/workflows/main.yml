@@ -18,10 +18,7 @@ jobs:
 
       - name: Download Video and Logo
         run: |
-          # 1. Main Video Download (2h 33m video)
           gdown "https://drive.google.com/uc?id=11WI3rYpe5tRW1p1FVj3sRu2eRep0eF92" -O video.mp4
-
-          # 2. Logo Download
           gdown "https://drive.google.com/uc?id=18STkB9gIB6xEZq3ZUbx8usnEANucjjuH" -O logo.png
 
       - name: Start Live Stream to YouTube
@@ -29,9 +26,9 @@ jobs:
           STREAM_KEY="${{ secrets.YOUTUBE_STREAM_KEY }}"
           STREAM_URL="rtmp://a.rtmp.youtube.com/live2"
 
-          # Heavy merging இல்லாமல் நேரடியாக லோகோவுடன் லைவ் ஓட்டும் கமாண்ட்
+          # [1:v]scale=180:-1 மூலம் லோகோவை சிறியதாக்கி மூலையில் (30:30) வைக்கிறோம்
           ffmpeg -re -stream_loop -1 -i video.mp4 -i logo.png \
-          -filter_complex "[0:v][1:v]overlay=30:30[v]" \
+          -filter_complex "[1:v]scale=180:-1[scaled_logo];[0:v][scaled_logo]overlay=30:30[v]" \
           -map "[v]" -map 0:a \
           -c:v libx264 -preset ultrafast -b:v 2500k -maxrate 2500k -bufsize 5000k \
           -pix_fmt yuv420p -g 60 \
