@@ -1,7 +1,10 @@
-name: YouTube Live Stream with Logo
+name: YouTube Live Stream with Logo and Audio
 
 on:
   workflow_dispatch:
+  schedule:
+    # Seriyaana nerathil (8:20 PM IST / 14:50 UTC) automatic-a start aagum
+    - cron: '50 14 * * *'
 
 jobs:
   stream:
@@ -16,20 +19,38 @@ jobs:
           sudo apt-get install -y ffmpeg python3-pip
           pip3 install gdown
 
-      - name: Download Video and Logo
+      - name: Download Files
         run: |
-          gdown "https://drive.google.com/uc?id=11WI3rYpe5tRW1p1FVj3sRu2eRep0eF92" -O video.mp4
+          # 1. Main Video Download
+          gdown "https://drive.google.com/uc?id=1Ct1lcZzHEK4XjZ9xCZffWwCSo-s63knV" -O video.mp4
+
+          # 2. Logo Download
           gdown "https://drive.google.com/uc?id=18STkB9gIB6xEZq3ZUbx8usnEANucjjuH" -O logo.png
+
+          # 3. Audio Download
+          gdown "https://drive.google.com/uc?id=1BXzP6HRt9F8VGa8APuxGtCgOaupygrUS" -O audio.mp3
 
       - name: Start Live Stream to YouTube
         run: |
           STREAM_KEY="${{ secrets.YOUTUBE_STREAM_KEY }}"
           STREAM_URL="rtmp://a.rtmp.youtube.com/live2"
 
-          # [1:v]scale=180:-1 மூலம் லோகோவை சிறியதாக்கி மூலையில் (30:30) வைக்கிறோம்
-          ffmpeg -re -stream_loop -1 -i video.mp4 -i logo.png \
-          -filter_complex "[1:v]scale=180:-1[scaled_logo];[0:v][scaled_logo]overlay=30:30[v]" \
-          -map "[v]" -map 0:a \
+          # Process Flow:
+          # 1. Video odum pothu top-left corner-la chinna logo (scale=80)
+          # 2. Video mudinjathum black screen-la center-la periya logo (scale=350) mathum audio 5 murai loop aagum
+          # 3. Audio 5 murai mudinjathum automatic-a live END aagidgum
+          ffmpeg -re \
+          -i video.mp4 \
+          -stream_loop 4 -i audio.mp3 \
+          -i logo.png \
+          -filter_complex \
+          "[2:v]scale=80:-1[small_logo]; \
+           [0:v][small_logo]overlay=30:30[video_with_logo]; \
+           color=c=black:s=1280x720:r=30[black_bg]; \
+           [2:v]scale=350:-1[big_logo]; \
+           [black_bg][big_logo]overlay=(W-w)/2:(H-h)/2[audio_visual]; \
+           [video_with_logo][0:a][audio_visual][1:a]concat=n=2:v=1:a=1[v][a]" \
+          -map "[v]" -map "[a]" \
           -c:v libx264 -preset ultrafast -b:v 2500k -maxrate 2500k -bufsize 5000k \
           -pix_fmt yuv420p -g 60 \
           -c:a aac -b:a 128k -ar 44100 \
