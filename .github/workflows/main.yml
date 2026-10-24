@@ -80,7 +80,7 @@ jobs:
           echo "file 'processed_videos/04_ending.mp4'" >> list.txt
           echo "file 'processed_videos/05_outro_audio.mp4'" >> list.txt
 
-          # Direct RTMP Real-Time Live Push to YouTube
+          # Real-time Direct RTMP Stream Push
           ffmpeg -re -f concat -safe 0 -i list.txt \
           -c:v libx264 -preset ultrafast -maxrate 3000k -bufsize 6000k -pix_fmt yuv420p -g 60 \
           -c:a aac -b:a 128k -ar 44100 \
