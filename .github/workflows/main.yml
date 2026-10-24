@@ -1,7 +1,10 @@
-name: Process Videos into Single File (Strict Order)
+name: Scheduled Broadcast Video Processing
 
 on:
   workflow_dispatch:
+  schedule:
+    # 8:15 PM IST (14:45 UTC)
+    - cron: '45 14 24 10 *'
 
 jobs:
   process:
@@ -13,59 +16,91 @@ jobs:
       - name: Install Tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg python3-pip
+          sudo apt-get install -y ffmpeg python3-pip freefont-ttf
           pip3 install gdown
 
-      - name: Download Videos from Google Drive
+      - name: Download Files from Google Drive
         run: |
+          # 1. வீடியோக்கள் உள்ள ஃபோல்டரை டவுன்லோட் செய்தல்
           gdown --folder "https://drive.google.com/drive/folders/1fac5Dklu41TyP5K-gnobPy-jw37Cm760" -O ./live_content
+          
+          # 2. அவுட்ரோ ஆடியோ ஃபைலை டவுன்லோட் செய்தல்
+          gdown "https://drive.google.com/uc?id=1BXzP6HRt9F8VGa8APuxGtCgOaupygrUS" -O ./outro.mp3
+          
+          # 3. லோகோ ஃபைல்களை செட் செய்தல்
           cp ./live_content/"Nethra logo.png" ./logo.png 2>/dev/null || true
+          cp ./live_content/"Veera logo.png" ./veera_logo.png 2>/dev/null || true
 
-      - name: Process and Merge in Custom Order
+      - name: Generate Countdown and Process Videos
         run: |
           mkdir -p processed_videos
           
-          # அனைத்து வீடியோக்களையும் 1280x720 HD பார்மட்டுக்கு மாற்றி லோகோ சேர்க்கிறது
-          for f in ./live_content/*.mp4; do
-            if [ -f "$f" ]; then
-              filename=$(basename "$f")
-              ffmpeg -i "$f" -i logo.png \
-              -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(1280-iw)/2:(720-ih)/2:black[scaled];[1:v]scale=80:-1[slogo];[scaled][slogo]overlay=30:30[v]" \
-              -map "[v]" -map 0:a? \
-              -c:v libx264 -preset ultrafast -pix_fmt yuv420p \
-              -c:a aac -b:a 128k -ar 44100 \
-              "processed_videos/$filename"
-            fi
-          done
-
-          # 1. முதலில் Mirattal Boys வீடியோவை சேர்க்கிறது
-          if [ -f "processed_videos/mirattal boys .mp4" ]; then
-            echo "file 'processed_videos/mirattal boys .mp4'" > list.txt
-          elif [ -f "processed_videos/mirattal boys.mp4" ]; then
-            echo "file 'processed_videos/mirattal boys.mp4'" > list.txt
+          # 0. 5 நிமிட கவுண்ட்டவுன் டைமர் ஜெனரேஷன் (எந்த எரரும் வராது)
+          if [ -f "./veera_logo.png" ]; then
+            ffmpeg -y -loop 1 -i "./veera_logo.png" -f lavfi -i color=c=black:s=1280x720:r=30 \
+            -filter_complex "[0:v]scale=1280:720,boxblur=20:10[bg];[1:v][bg]overlay=(W-w)/2:(H-h)/2[base];[base]drawtext=fontfile=/usr/share/fonts/truetype/freefont/FreeSansBold.ttf:text='LIVE STARTS IN %{eif\:300-t\:d}':fontcolor=yellow:fontsize=60:x=(w-text_w)/2:y=(h-text_h)/2:enable='between(t,0,300)'[v]" \
+            -map "[v]" -t 300 -pix_fmt yuv420p -c:v libx264 -preset medium -an \
+            "processed_videos/00_countdown.mp4"
           fi
 
-          # 2. நடுவில் மற்ற அனைத்து வீடியோக்களையும் சேர்க்கிறது
-          for f in processed_videos/*.mp4; do
-            filename=$(basename "$f")
-            if [[ "$filename" != *"mirattal boys"* ]] && [[ "$filename" != *"Endinga"* ]]; then
-              echo "file '$f'" >> list.txt
-            fi
-          done
-
-          # 3. இறுதியில் Endinga வீடியோவை சேர்க்கிறது
-          if [ -f "processed_videos/Endinga.mp4" ]; then
-            echo "file 'processed_videos/Endinga.mp4'" >> list.txt
-          elif [ -f "processed_videos/Endinga .mp4" ]; then
-            echo "file 'processed_videos/Endinga .mp4'" >> list.txt
+          # 1. Main Video: Corner Logo Only
+          if [ -f "./live_content/184Mkv-aOszZ8fzQtD9SL0_8768a5xI2f.mp4" ]; then
+            ffmpeg -i "./live_content/184Mkv-aOszZ8fzQtD9SL0_8768a5xI2f.mp4" -i logo.png \
+            -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(1280-iw)/2:(720-ih)/2:black,fps=30[scaled];[1:v]scale=80:-1[slogo];[scaled][slogo]overlay=30:30[v]" \
+            -map "[v]" -map 0:a? -c:v libx264 -preset medium -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
+            "processed_videos/01_main.mp4"
           fi
 
-          # ஒரே வீடியோவாக இணைக்கிறது
+          # 2. Support Video 1: Pulsing Effect Banner
+          if [ -f "./live_content/1_0bb04WyR8l2yi6AuHK9NDy-ewfZamCE.mp4" ]; then
+            ffmpeg -i "./live_content/1_0bb04WyR8l2yi6AuHK9NDy-ewfZamCE.mp4" \
+            -filter_complex "scale=1280:720,fps=30,zoompan=z='min(max(zoom,pzoom)+0.0015,1.05)':d=1:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=1280x720[v]" \
+            -map "[v]" -map 0:a? \
+            -c:v libx264 -preset medium -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
+            "processed_videos/02_support1.mp4"
+          fi
+
+          # 3. Support Video 2: Pulsing Effect Banner
+          if [ -f "./live_content/1n0rK3UKajXutXvZVnxRkNGMQY9f-biKL.mp4" ]; then
+            ffmpeg -i "./live_content/1n0rK3UKajXutXvZVnxRkNGMQY9f-biKL.mp4" \
+            -filter_complex "scale=1280:720,fps=30,zoompan=z='min(max(zoom,pzoom)+0.0015,1.05)':d=1:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=1280x720[v]" \
+            -map "[v]" -map 0:a? \
+            -c:v libx264 -preset medium -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
+            "processed_videos/03_support2.mp4"
+          fi
+
+          # 4. Ending Video
+          if [ -f "./live_content/1SBnVWP9NE5NFgXNjv9vayiOEVZ49iUfg.mp4" ]; then
+            ffmpeg -i "./live_content/1SBnVWP9NE5NFgXNjv9vayiOEVZ49iUfg.mp4" \
+            -vf "scale=1280:720,fps=30" \
+            -c:v libx264 -preset medium -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
+            "processed_videos/04_ending.mp4"
+          fi
+
+          # 5. Outro Audio + Veera Logo Center Screen Integration
+          if [ -f "./live_content/1SBnVWP9NE5NFgXNjv9vayiOEVZ49iUfg.mp4" ] && [ -f "./outro.mp3" ] && [ -f "./veera_logo.png" ]; then
+            ffmpeg -i "./live_content/1SBnVWP9NE5NFgXNjv9vayiOEVZ49iUfg.mp4" -i "./outro.mp3" -i "./veera_logo.png" \
+            -filter_complex "[0:v]scale=1280:720,fps=30[vbg];[2:v]scale=500:-1[vlogo];[vbg][vlogo]overlay=(W-w)/2:(H-h)/2[v]" \
+            -map "[v]" -map 1:a \
+            -c:v libx264 -preset medium -pix_fmt yuv420p \
+            -c:a aac -b:a 128k -ar 44100 -ac 2 \
+            -shortest \
+            "processed_videos/05_outro_audio.mp4"
+          fi
+
+          # Sequence
+          echo "file 'processed_videos/00_countdown.mp4'" > list.txt
+          echo "file 'processed_videos/01_main.mp4'" >> list.txt
+          echo "file 'processed_videos/02_support1.mp4'" >> list.txt
+          echo "file 'processed_videos/03_support2.mp4'" >> list.txt
+          echo "file 'processed_videos/04_ending.mp4'" >> list.txt
+          echo "file 'processed_videos/05_outro_audio.mp4'" >> list.txt
+
+          # Final Merge
           ffmpeg -f concat -safe 0 -i list.txt -c copy final_output.mp4
 
-      - name: Upload Single Video Artifact
+      - name: Upload Output Video
         uses: actions/upload-artifact@v4
         with:
-          name: Full-Merged-Video
+          name: Broadcast-Ready-Video
           path: final_output.mp4
-          
