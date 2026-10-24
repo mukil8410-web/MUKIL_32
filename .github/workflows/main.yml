@@ -1,10 +1,10 @@
-name: YouTube Live Stream with Logo and Audio
+name: YouTube Live Stream from Drive Folder
 
 on:
   workflow_dispatch:
   schedule:
-    # Seriyaana nerathil (8:20 PM IST / 14:50 UTC) automatic-a start aagum
-    - cron: '50 14 * * *'
+    # 24 அக்டோபர் காலை 11:25 AM IST (UTC 05:55) மணிக்கு ஆட்டோமேட்டிக்காக ரன் ஆகும்
+    - cron: '55 5 24 10 *'
 
 jobs:
   stream:
@@ -19,38 +19,53 @@ jobs:
           sudo apt-get install -y ffmpeg python3-pip
           pip3 install gdown
 
-      - name: Download Files
+      - name: Download Videos and Assets from Google Drive
         run: |
-          # 1. Main Video Download
-          gdown "https://drive.google.com/uc?id=1Ct1lcZzHEK4XjZ9xCZffWwCSo-s63knV" -O video.mp4
+          # 1. Google Drive Folder-ல் இருந்து அனைத்து வீடியோக்களையும் டவுன்லோட் செய்கிறது
+          gdown --folder "https://drive.google.com/drive/folders/1fac5Dklu41TyP5K-gnobPy-jw37Cm760" -O ./live_content
 
-          # 2. Logo Download
-          gdown "https://drive.google.com/uc?id=18STkB9gIB6xEZq3ZUbx8usnEANucjjuH" -O logo.png
+          # 2. லோகோ ஃபைலை பிரித்து வைக்கிறது
+          cp ./live_content/"Nethra logo.png" ./logo.png 2>/dev/null || true
 
-          # 3. Audio Download
-          gdown "https://drive.google.com/uc?id=1BXzP6HRt9F8VGa8APuxGtCgOaupygrUS" -O audio.mp3
+      - name: Process Videos (Normalize Aspect Ratio & Add Logo)
+        run: |
+          mkdir -p processed_videos
+          
+          # 14 வீடியோக்களையும் 1280x720 சைஸுக்கு மாற்றி, கார்னரில் சின்ன லோகோ சேர்க்கிறது
+          for f in ./live_content/*.mp4; do
+            if [ -f "$f" ]; then
+              filename=$(basename "$f")
+              ffmpeg -i "$f" -i logo.png \
+              -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(1280-iw)/2:(720-ih)/2:black[scaled];[1:v]scale=80:-1[slogo];[scaled][slogo]overlay=30:30[v]" \
+              -map "[v]" -map 0:a? \
+              -c:v libx264 -preset ultrafast -pix_fmt yuv420p \
+              -c:a aac -b:a 128k -ar 44100 \
+              "processed_videos/$filename"
+            fi
+          done
+
+          # Concat லிஸ்ட் தயாரிக்கிறது
+          for f in processed_videos/*.mp4; do
+            echo "file '$f'" >> list.txt
+          done
+
+      - name: Create One-time Outro Video
+        run: |
+          # 1 முறை மட்டுமே ஓடும் அவுட்ரோ
+          if [ -f "./live_content/audio.mp3" ]; then
+            ffmpeg -loop 1 -i logo.png -i ./live_content/audio.mp3 \
+            -filter_complex "[0:v]scale=350:-1,pad=1280:720:(1280-iw)/2:(720-ih)/2:black[v]" \
+            -map "[v]" -map 1:a -c:v libx264 -preset ultrafast -pix_fmt yuv420p -shortest outro.mp4
+            echo "file 'outro.mp4'" >> list.txt
+          fi
 
       - name: Start Live Stream to YouTube
         run: |
           STREAM_KEY="${{ secrets.YOUTUBE_STREAM_KEY }}"
           STREAM_URL="rtmp://a.rtmp.youtube.com/live2"
 
-          # Process Flow:
-          # 1. Video odum pothu top-left corner-la chinna logo (scale=80)
-          # 2. Video mudinjathum black screen-la center-la periya logo (scale=350) mathum audio 5 murai loop aagum
-          # 3. Audio 5 murai mudinjathum automatic-a live END aagidgum
-          ffmpeg -re \
-          -i video.mp4 \
-          -stream_loop 4 -i audio.mp3 \
-          -i logo.png \
-          -filter_complex \
-          "[2:v]scale=80:-1[small_logo]; \
-           [0:v][small_logo]overlay=30:30[video_with_logo]; \
-           color=c=black:s=1280x720:r=30[black_bg]; \
-           [2:v]scale=350:-1[big_logo]; \
-           [black_bg][big_logo]overlay=(W-w)/2:(H-h)/2[audio_visual]; \
-           [video_with_logo][0:a][audio_visual][1:a]concat=n=2:v=1:a=1[v][a]" \
-          -map "[v]" -map "[a]" \
+          # மெயின் வீடியோக்கள் + 1 முறை அவுட்ரோ ஓடி முடித்ததும் லைவ் தானாகவே நின்றிரும்
+          ffmpeg -re -f concat -safe 0 -i list.txt \
           -c:v libx264 -preset ultrafast -b:v 2500k -maxrate 2500k -bufsize 5000k \
           -pix_fmt yuv420p -g 60 \
           -c:a aac -b:a 128k -ar 44100 \
