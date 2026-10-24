@@ -1,9 +1,7 @@
-name: Fast Scheduled Broadcast Processing
+name: Fast Direct Broadcast Video Processing
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '45 14 24 10 *'
 
 jobs:
   process:
@@ -15,7 +13,7 @@ jobs:
       - name: Install Tools Fast
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg python3-pip fonts-freefont-ttf --no-install-recommends
+          sudo apt-get install -y ffmpeg python3-pip --no-install-recommends
           pip3 install gdown
 
       - name: Download Files from Google Drive
@@ -25,19 +23,11 @@ jobs:
           cp ./live_content/"Nethra logo.png" ./logo.png 2>/dev/null || true
           cp ./live_content/"Veera logo.png" ./veera_logo.png 2>/dev/null || true
 
-      - name: Generate Countdown and Process Videos
+      - name: Process Videos Direct
         run: |
           mkdir -p processed_videos
-          
-          # 0. 5 Min Countdown
-          if [ -f "./veera_logo.png" ]; then
-            ffmpeg -y -loop 1 -i "./veera_logo.png" -f lavfi -i color=c=black:s=1280x720:r=30 \
-            -filter_complex "[0:v]scale=1280:720,boxblur=20:10[bg];[1:v][bg]overlay=(W-w)/2:(H-h)/2[base];[base]drawtext=fontfile=/usr/share/fonts/truetype/freefont/FreeSansBold.ttf:text='LIVE STARTS IN %{eif\:300-t\:d}':fontcolor=yellow:fontsize=60:x=(w-text_w)/2:y=(h-text_h)/2:enable='between(t,0,300)'[v]" \
-            -map "[v]" -t 300 -pix_fmt yuv420p -c:v libx264 -preset ultrafast -an \
-            "processed_videos/00_countdown.mp4"
-          fi
 
-          # 1. Main Video
+          # 1. Main Video: Corner Logo Only
           if [ -f "./live_content/184Mkv-aOszZ8fzQtD9SL0_8768a5xI2f.mp4" ]; then
             ffmpeg -i "./live_content/184Mkv-aOszZ8fzQtD9SL0_8768a5xI2f.mp4" -i logo.png \
             -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(1280-iw)/2:(720-ih)/2:black,fps=30[scaled];[1:v]scale=80:-1[slogo];[scaled][slogo]overlay=30:30[v]" \
@@ -45,7 +35,7 @@ jobs:
             "processed_videos/01_main.mp4"
           fi
 
-          # 2. Support Video 1
+          # 2. Support Video 1: Pulsing Effect Banner
           if [ -f "./live_content/1_0bb04WyR8l2yi6AuHK9NDy-ewfZamCE.mp4" ]; then
             ffmpeg -i "./live_content/1_0bb04WyR8l2yi6AuHK9NDy-ewfZamCE.mp4" \
             -filter_complex "scale=1280:720,fps=30,zoompan=z='min(max(zoom,pzoom)+0.0015,1.05)':d=1:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=1280x720[v]" \
@@ -54,7 +44,7 @@ jobs:
             "processed_videos/02_support1.mp4"
           fi
 
-          # 3. Support Video 2
+          # 3. Support Video 2: Pulsing Effect Banner
           if [ -f "./live_content/1n0rK3UKajXutXvZVnxRkNGMQY9f-biKL.mp4" ]; then
             ffmpeg -i "./live_content/1n0rK3UKajXutXvZVnxRkNGMQY9f-biKL.mp4" \
             -filter_complex "scale=1280:720,fps=30,zoompan=z='min(max(zoom,pzoom)+0.0015,1.05)':d=1:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=1280x720[v]" \
@@ -83,8 +73,7 @@ jobs:
           fi
 
           # Sequence
-          echo "file 'processed_videos/00_countdown.mp4'" > list.txt
-          echo "file 'processed_videos/01_main.mp4'" >> list.txt
+          echo "file 'processed_videos/01_main.mp4'" > list.txt
           echo "file 'processed_videos/02_support1.mp4'" >> list.txt
           echo "file 'processed_videos/03_support2.mp4'" >> list.txt
           echo "file 'processed_videos/04_ending.mp4'" >> list.txt
