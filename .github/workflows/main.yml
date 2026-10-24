@@ -14,7 +14,8 @@ jobs:
 
       - name: Install Tools Fast
         run: |
-          sudo apt-get install -y ffmpeg python3-pip freefont-ttf --no-install-recommends
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg python3-pip fonts-freefont-ttf --no-install-recommends
           pip3 install gdown
 
       - name: Download Files from Google Drive
