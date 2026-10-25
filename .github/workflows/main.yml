@@ -1,129 +1,78 @@
-name: Process and Merge Final YouTube and Drive Assets
+name: YouTube Live Stream with Custom Sequence
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '50 14 * * *'
 
 jobs:
-  build-video:
+  stream:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js (Required for YouTube extraction)
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
       - name: Install Tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg python3-pip curl
-          pip3 install yt-dlp gdown
+          sudo apt-get install -y ffmpeg python3-pip
+          pip3 install gdown
 
-      - name: Download All Assets
+      - name: Download Files
         run: |
-          mkdir -p processed_videos
+          # 1. Main Video Download (Truncated to 51 minutes / 3060 seconds)
+          gdown "https://drive.google.com/uc?id=184Mkv-aOszZ8fzQtD9SL0_8768a5xI2f" -O main_video.mp4
 
-          dl_drive() {
-            FILE_ID=$1
-            OUTPUT=$2
-            gdown "https://drive.google.com/uc?id=${FILE_ID}" -O "${OUTPUT}" || \
-            curl -Lb cookies.txt "https://docs.google.com/uc?export=download&confirm=t&id=${FILE_ID}" -o "${OUTPUT}"
-          }
+          # 2. Support Video Download
+          gdown "https://drive.google.com/uc?id=1CCsq1Kp0atYimfPT-v41sfJGjSPOV5Y2" -O support_video.mp4
 
-          dl_yt() {
-            YT_URL=$1
-            OUTPUT=$2
-            yt-dlp -f "bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4] / best" "${YT_URL}" -o "${OUTPUT}"
-          }
+          # 3. Logo Download
+          gdown "https://drive.google.com/uc?id=18STkB9gIB6xEZq3ZUbx8usnEANucjjuH" -O logo.png
 
-          echo "--- DOWNLOADING ASSETS ---"
-          dl_drive "1n0rK3UKajXutXvZVnxRkNGMQY9f-biKL" "banner3.png"
-          dl_drive "1gIUHM1MZQOm0vQ23cnd8XZFo7SO2WvzW" "banner2.png"
-          dl_drive "1Z5OfH81eQSa3ofyEj7jvTQvepppyhPY4" "banner5.png"
-          dl_drive "1BXzP6HRt9F8VGa8APuxGtCgOaupygrUS" "audio.mp3"
-          dl_drive "1WEu_-Z84_a8jXSsRaL_KBFgiJOTXbqp7" "logo_full.mp4"
+          # 4. Audio Download
+          gdown "https://drive.google.com/uc?id=1BXzP6HRt9F8VGa8APuxGtCgOaupygrUS" -O audio.mp3
 
-          dl_yt "https://youtu.be/ohEvt5mUn94" "main_vid.mp4"
-          dl_yt "https://youtu.be/_9KxZLUy_KY" "sub1.mp4"
-          dl_yt "https://youtu.be/Z_w5hRxbkrs" "sub2.mp4"
-          dl_yt "https://youtu.be/RVW6_LIY37c" "sub3.mp4"
-          dl_yt "https://youtu.be/s4W9WpGW_TY" "sub4.mp4"
-          dl_yt "https://youtu.be/hpdm00PMfcU" "sub5.mp4"
-          dl_yt "https://youtu.be/ot2V1Rqn0Tk" "sub6.mp4"
-          dl_yt "https://youtu.be/QeaacmNTJuo" "sub8.mp4"
-
-      - name: Process and Merge All Videos
+      - name: Start Live Stream to YouTube
         run: |
-          ffmpeg -i main_vid.mp4 -i logo_full.mp4 \
+          STREAM_KEY="${{ secrets.YOUTUBE_STREAM_KEY }}"
+          STREAM_URL="rtmp://a.rtmp.youtube.com/live2"
+
+          # Step 1: Trim Main Video to exact 51 minutes (3060 seconds) & add corner logo
+          ffmpeg -i main_video.mp4 -i logo.png \
+          -t 3060 \
           -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(1280-iw)/2:(720-ih)/2:black,fps=30[scaled];[1:v]scale=80:-1[slogo];[scaled][slogo]overlay=30:30[v]" \
-          -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
-          "processed_videos/01_main.mp4"
+          -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k part1_main.mp4
 
-          ffmpeg -i sub1.mp4 -i logo_full.mp4 \
+          # Step 2: Process Support Video 1
+          ffmpeg -i support_video.mp4 -i logo.png \
           -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(1280-iw)/2:(720-ih)/2:black,fps=30[scaled];[1:v]scale=80:-1[slogo];[scaled][slogo]overlay=30:30[v]" \
-          -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
-          "processed_videos/02_sub1.mp4"
+          -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k part2_support1.mp4
 
-          ffmpeg -i sub2.mp4 -i banner2.png -i logo_full.mp4 \
-          -filter_complex "[1:v]scale=1400:1400,zoompan=z='min(zoom+0.0015,1.15)':d=150:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=1280x720,fps=30[bg];[0:v]scale=800:450[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2[combined];[2:v]scale=80:-1[slogo];[combined][slogo]overlay=30:30[v]" \
-          -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
-          "processed_videos/03_sub2.mp4"
+          # Step 3: Outro Audio & Big Logo 1
+          ffmpeg -i logo.png -i audio.mp3 \
+          -filter_complex "[0:v]scale=1280:720,fps=30[vbg];[0:v]scale=350:-1[big_logo];[vbg][big_logo]overlay=(W-w)/2:(H-h)/2[v]" \
+          -map "[v]" -map 1:a -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k -shortest part3_outro1.mp4
 
-          ffmpeg -i sub3.mp4 -i logo_full.mp4 \
+          # Step 4: Process Support Video 2
+          ffmpeg -i support_video.mp4 -i logo.png \
           -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(1280-iw)/2:(720-ih)/2:black,fps=30[scaled];[1:v]scale=80:-1[slogo];[scaled][slogo]overlay=30:30[v]" \
-          -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
-          "processed_videos/04_sub3.mp4"
+          -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k part4_support2.mp4
 
-          ffmpeg -i sub4.mp4 -i banner5.png -i logo_full.mp4 \
-          -filter_complex "[1:v]scale=1400:1400,zoompan=z='min(zoom+0.0015,1.15)':d=150:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=1280x720,fps=30[bg];[0:v]scale=800:450[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2[combined];[2:v]scale=80:-1[slogo];[combined][slogo]overlay=30:30[v]" \
-          -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
-          "processed_videos/05_sub4.mp4"
+          # Step 5: Outro Audio & Big Logo 2
+          ffmpeg -i logo.png -i audio.mp3 \
+          -filter_complex "[0:v]scale=1280:720,fps=30[vbg];[0:v]scale=350:-1[big_logo];[vbg][big_logo]overlay=(W-w)/2:(H-h)/2[v]" \
+          -map "[v]" -map 1:a -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k -shortest part5_outro2.mp4
 
-          ffmpeg -i sub5.mp4 -i logo_full.mp4 \
-          -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(1280-iw)/2:(720-ih)/2:black,fps=30[scaled];[1:v]scale=80:-1[slogo];[scaled][slogo]overlay=30:30[v]" \
-          -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
-          "processed_videos/06_sub5.mp4"
+          # Create playlist for final sequential streaming
+          echo "file 'part1_main.mp4'" > playlist.txt
+          echo "file 'part2_support1.mp4'" >> playlist.txt
+          echo "file 'part3_outro1.mp4'" >> playlist.txt
+          echo "file 'part4_support2.mp4'" >> playlist.txt
+          echo "file 'part5_outro2.mp4'" >> playlist.txt
 
-          ffmpeg -i sub6.mp4 -i logo_full.mp4 \
-          -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(1280-iw)/2:(720-ih)/2:black,fps=30[scaled];[1:v]scale=80:-1[slogo];[scaled][slogo]overlay=30:30[v]" \
-          -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
-          "processed_videos/07_sub6.mp4"
-
-          ffmpeg -i sub1.mp4 -i banner3.png -i logo_full.mp4 \
-          -filter_complex "[1:v]scale=1400:1400,zoompan=z='min(zoom+0.0015,1.15)':d=150:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=1280x720,fps=30[bg];[0:v]scale=800:450[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2[combined];[2:v]scale=80:-1[slogo];[combined][slogo]overlay=30:30[v]" \
-          -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
-          "processed_videos/08_sub7.mp4"
-
-          ffmpeg -i sub8.mp4 -i logo_full.mp4 \
-          -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(1280-iw)/2:(720-ih)/2:black,fps=30[scaled];[1:v]scale=80:-1[slogo];[scaled][slogo]overlay=30:30[v]" \
-          -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
-          "processed_videos/09_sub8.mp4"
-
-          ffmpeg -i logo_full.mp4 -i audio.mp3 -i banner5.png \
-          -filter_complex "[0:v]scale=1280:720,fps=30[vbg];[2:v]scale=400:-1[big_banner];[vbg][big_banner]overlay=(W-w)/2:(H-h)/2[v]" \
-          -map "[v]" -map 1:a \
-          -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p \
-          -c:a aac -b:a 128k -ar 44100 -ac 2 \
-          -shortest \
-          "processed_videos/10_outro.mp4"
-
-          echo "file 'processed_videos/01_main.mp4'" > list.txt
-          echo "file 'processed_videos/02_sub1.mp4'" >> list.txt
-          echo "file 'processed_videos/03_sub2.mp4'" >> list.txt
-          echo "file 'processed_videos/04_sub3.mp4'" >> list.txt
-          echo "file 'processed_videos/05_sub4.mp4'" >> list.txt
-          echo "file 'processed_videos/06_sub5.mp4'" >> list.txt
-          echo "file 'processed_videos/07_sub6.mp4'" >> list.txt
-          echo "file 'processed_videos/08_sub7.mp4'" >> list.txt
-          echo "file 'processed_videos/09_sub8.mp4'" >> list.txt
-          echo "file 'processed_videos/10_outro.mp4'" >> list.txt
-
-          ffmpeg -f concat -safe 0 -i list.txt -c:v libx264 -preset ultrafast -crf 23 -c:a aac -b:a 128k final_stream.mp4
-
-      - name: Upload Final Video to GitHub Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: merged-final-video
-          path: final_stream.mp4
+          # Stream sequentially to YouTube Live
+          ffmpeg -re -f concat -safe 0 -i playlist.txt \
+          -c:v libx264 -preset ultrafast -b:v 2500k -maxrate 2500k -bufsize 5000k \
+          -pix_fmt yuv420p -g 60 \
+          -c:a aac -b:a 128k -ar 44100 \
+          -f flv "$STREAM_URL/$STREAM_KEY"
