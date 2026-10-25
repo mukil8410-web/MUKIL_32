@@ -51,49 +51,49 @@ jobs:
           -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
           "processed_videos/01_main.mp4"
 
-          # 2. Support Video 1 covered with Banner 1 (Full Screen Static/Cover) + Audio + Corner Logo
+          # 2. Support Video 1 with Banner 1
           ffmpeg -i support1.mp4 -i banner1.png -i logo.png \
           -filter_complex "[1:v]scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720,fps=30[bg];[2:v]scale=80:-1[slogo];[bg][slogo]overlay=30:30[v]" \
           -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
           "processed_videos/02_support1.mp4"
 
-          # 3. Support Video 2 covered with Banner 2 (Full Screen Static/Cover) + Audio + Corner Logo
+          # 3. Support Video 2 with Banner 2
           ffmpeg -i support2.mp4 -i banner2.png -i logo.png \
           -filter_complex "[1:v]scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720,fps=30[bg];[2:v]scale=80:-1[slogo];[bg][slogo]overlay=30:30[v]" \
           -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
           "processed_videos/03_support2.mp4"
 
-          # 4. Support Video 3 (Shorts Size with Blurred Background) + Corner Logo
+          # 4. Support Video 3 (Shorts Size with Safe Blur Background)
           ffmpeg -i support3.mp4 -i logo.png \
-          -filter_complex "[0:v]scale=720:1280,boxblur=s=20:p=3[bg];[0:v]scale=720:1280[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2,scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(1280-iw)/2:(720-ih)/2:black,fps=30[scaled];[1:v]scale=80:-1[slogo];[scaled][slogo]overlay=30:30[v]" \
+          -filter_complex "[0:v]scale=720:1280,gblur=sigma=20[bg];[0:v]scale=720:1280[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2,scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(1280-iw)/2:(720-ih)/2:black,fps=30[scaled];[1:v]scale=80:-1[slogo];[scaled][slogo]overlay=30:30[v]" \
           -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
           "processed_videos/04_support3.mp4"
 
-          # 5. Support Video 4 covered with Banner 4 (Full Screen Static/Cover) + Audio + Corner Logo
+          # 5. Support Video 4 with Banner 4
           ffmpeg -i support4.mp4 -i banner4.png -i logo.png \
           -filter_complex "[1:v]scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720,fps=30[bg];[2:v]scale=80:-1[slogo];[bg][slogo]overlay=30:30[v]" \
           -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
           "processed_videos/05_support4.mp4"
 
-          # 6. Support Video 5 (Normal Video Display + Corner Logo)
+          # 6. Support Video 5
           ffmpeg -i support5.mp4 -i logo.png \
           -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(1280-iw)/2:(720-ih)/2:black,fps=30[scaled];[1:v]scale=80:-1[slogo];[scaled][slogo]overlay=30:30[v]" \
           -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
           "processed_videos/06_support5.mp4"
 
-          # 7. Support Video 6 (Normal Video Display + Corner Logo)
+          # 7. Support Video 6
           ffmpeg -i support6.mp4 -i logo.png \
           -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(1280-iw)/2:(720-ih)/2:black,fps=30[scaled];[1:v]scale=80:-1[slogo];[scaled][slogo]overlay=30:30[v]" \
           -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
           "processed_videos/07_support6.mp4"
 
-          # 8. Support Video 7 (Reusing Support Video 1 with Banner 1 Full Cover + Corner Logo)
+          # 8. Support Video 7 (Reusing Support Video 1 with Banner 1)
           ffmpeg -i support1.mp4 -i banner1.png -i logo.png \
           -filter_complex "[1:v]scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720,fps=30[bg];[2:v]scale=80:-1[slogo];[bg][slogo]overlay=30:30[v]" \
           -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
           "processed_videos/08_support7.mp4"
 
-          # 9. Outro Audio + Big Center Veera Logo on Black Background
+          # 9. Outro Audio + Big Center Veera Logo
           ffmpeg -i video_main.mp4 -i audio.mp3 -i veera_logo.png \
           -filter_complex "[0:v]scale=1280:720,fps=30[vbg];[2:v]scale=350:-1[big_logo];[vbg][big_logo]overlay=(W-w)/2:(H-h)/2[v]" \
           -map "[v]" -map 1:a \
