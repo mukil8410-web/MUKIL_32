@@ -20,17 +20,26 @@ jobs:
 
       - name: Download Files
         run: |
+          # Helper function for Google Drive
+          dl_drive() {
+            FILE_ID=$1
+            OUTPUT=$2
+            gdown "https://drive.google.com/uc?id=${FILE_ID}" -O "${OUTPUT}" || \
+            curl -Lb cookies.txt "https://docs.google.com/uc?export=download&confirm=t&id=${FILE_ID}" -o "${OUTPUT}"
+          }
+
+          echo "--- DOWNLOADING ASSETS ---"
           # 1. Main Video Download (Truncated to 51 minutes / 3060 seconds)
-          gdown "https://drive.google.com/uc?id=184Mkv-aOszZ8fzQtD9SL0_8768a5xI2f" -O main_video.mp4
+          dl_drive "184Mkv-aOszZ8fzQtD9SL0_8768a5xI2f" "main_video.mp4"
 
           # 2. Support Video Download
-          gdown "https://drive.google.com/uc?id=1CCsq1Kp0atYimfPT-v41sfJGjSPOV5Y2" -O support_video.mp4
+          dl_drive "1CCsq1Kp0atYimfPT-v41sfJGjSPOV5Y2" "support_video.mp4"
 
-          # 3. Logo Download
-          gdown "https://drive.google.com/uc?id=18STkB9gIB6xEZq3ZUbx8usnEANucjjuH" -O logo.png
+          # 3. Logo Download (Updated Link)
+          dl_drive "1WEu_-Z84_a8jXSsRaL_KBFgiJOTXbqp7" "logo.png"
 
-          # 4. Audio Download
-          gdown "https://drive.google.com/uc?id=1BXzP6HRt9F8VGa8APuxGtCgOaupygrUS" -O audio.mp3
+          # 4. Audio Download (Updated Link)
+          dl_drive "1BXzP6HRt9F8VGa8APuxGtCgOaupygrUS" "audio.mp3"
 
       - name: Start Live Stream to YouTube
         run: |
