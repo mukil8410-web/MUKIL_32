@@ -1,9 +1,8 @@
-name: YouTube Live Stream with Logo and Audio
+name: YouTube Live Stream Final Pipeline
 
 on:
   workflow_dispatch:
   schedule:
-    # Seriyaana nerathil (8:20 PM IST / 14:50 UTC) automatic-a start aagum
     - cron: '50 14 * * *'
 
 jobs:
@@ -19,39 +18,106 @@ jobs:
           sudo apt-get install -y ffmpeg python3-pip
           pip3 install gdown
 
-      - name: Download Files
+      - name: Download Files from Google Drive
         run: |
+          mkdir -p processed_videos
+          
           # 1. Main Video Download
-          gdown "https://drive.google.com/uc?id=1Ct1lcZzHEK4XjZ9xCZffWwCSo-s63knV" -O video.mp4
+          gdown "https://drive.google.com/uc?id=184Mkv-aOszZ8fzQtD9SL0_8768a5xI2f" -O video_main.mp4
 
-          # 2. Logo Download
+          # 2. Support Videos Download (1 to 6)
+          gdown "https://drive.google.com/uc?id=1_0bb04WyR8l2yi6AuHK9NDy-ewfZamCE" -O support1.mp4
+          gdown "https://drive.google.com/uc?id=1Ct1lcZzHEK4XjZ9xCZffWwCSo-s63knV" -O support2.mp4
+          gdown "https://drive.google.com/uc?id=1SBnVWP9NE5NFgXNjv9vayiOEVZ49iUfg" -O support3.mp4
+          gdown "https://drive.google.com/uc?id=1wV5XmAjm0ux6JhRPPiQw503d6JyI5WrE" -O support4.mp4
+          gdown "https://drive.google.com/uc?id=1cvKVIDrGDTSEg_eD-Zj02cJxB3bYuAhg" -O support5.mp4
+          gdown "https://drive.google.com/uc?id=1NTn7BjvGwvkU4Gq8uVSIEWNRLflx_Z00" -O support6.mp4
+
+          # 3. Banners Download for Support 1, 2, 4 & 7 (Support 7 uses Banner 1)
+          gdown "https://drive.google.com/uc?id=1n0rK3UKajXutXvZVnxRkNGMQY9f-biKL" -O banner1.png
+          gdown "https://drive.google.com/uc?id=1gIUHM1MZQOm0vQ23cnd8XZFo7SO2WvzW" -O banner2.png
+          gdown "https://drive.google.com/uc?id=1Z5OfH81eQSa3ofyEj7jvTQvepppyhPY4" -O banner4.png
+
+          # 4. Logos & Audio Download
           gdown "https://drive.google.com/uc?id=18STkB9gIB6xEZq3ZUbx8usnEANucjjuH" -O logo.png
-
-          # 3. Audio Download
+          gdown "https://drive.google.com/uc?id=1WEu_-Z84_a8jXSsRaL_KBFgiJOTXbqp7" -O veera_logo.png
           gdown "https://drive.google.com/uc?id=1BXzP6HRt9F8VGa8APuxGtCgOaupygrUS" -O audio.mp3
 
-      - name: Start Live Stream to YouTube
+      - name: Process and Stream Directly
         run: |
+          # 1. Main Video: Corner Logo & Scaling
+          ffmpeg -i video_main.mp4 -i logo.png \
+          -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(1280-iw)/2:(720-ih)/2:black,fps=30[scaled];[1:v]scale=80:-1[slogo];[scaled][slogo]overlay=30:30[v]" \
+          -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
+          "processed_videos/01_main.mp4"
+
+          # 2. Support Video 1 with Banner 1 (Pulsing) + Corner Logo
+          ffmpeg -i support1.mp4 -i banner1.png -i logo.png \
+          -filter_complex "[1:v]scale=1280:720,fps=30,zoompan=z='if(lte(mod(in_on,60),30),1.0+0.03*(mod(in_on,30)/30),1.0+0.03*(1-(mod(in_on,30)/30)))':d=1:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=1280x720[bg];[2:v]scale=80:-1[slogo];[bg][slogo]overlay=30:30[v]" \
+          -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
+          "processed_videos/02_support1.mp4"
+
+          # 3. Support Video 2 with Banner 2 (Pulsing) + Corner Logo
+          ffmpeg -i support2.mp4 -i banner2.png -i logo.png \
+          -filter_complex "[1:v]scale=1280:720,fps=30,zoompan=z='if(lte(mod(in_on,60),30),1.0+0.03*(mod(in_on,30)/30),1.0+0.03*(1-(mod(in_on,30)/30)))':d=1:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=1280x720[bg];[2:v]scale=80:-1[slogo];[bg][slogo]overlay=30:30[v]" \
+          -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
+          "processed_videos/03_support2.mp4"
+
+          # 4. Support Video 3 (Shorts Size with Blurred Background) + Corner Logo
+          ffmpeg -i support3.mp4 -i logo.png \
+          -filter_complex "[0:v]scale=720:1280,boxblur=s=20:p=3[bg];[0:v]scale=720:1280[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2,scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(1280-iw)/2:(720-ih)/2:black,fps=30[scaled];[1:v]scale=80:-1[slogo];[scaled][slogo]overlay=30:30[v]" \
+          -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
+          "processed_videos/04_support3.mp4"
+
+          # 5. Support Video 4 with Banner 4 (Pulsing) + Corner Logo
+          ffmpeg -i support4.mp4 -i banner4.png -i logo.png \
+          -filter_complex "[1:v]scale=1280:720,fps=30,zoompan=z='if(lte(mod(in_on,60),30),1.0+0.03*(mod(in_on,30)/30),1.0+0.03*(1-(mod(in_on,30)/30)))':d=1:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=1280x720[bg];[2:v]scale=80:-1[slogo];[bg][slogo]overlay=30:30[v]" \
+          -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
+          "processed_videos/05_support4.mp4"
+
+          # 6. Support Video 5 (Normal Video Display + Corner Logo)
+          ffmpeg -i support5.mp4 -i logo.png \
+          -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(1280-iw)/2:(720-ih)/2:black,fps=30[scaled];[1:v]scale=80:-1[slogo];[scaled][slogo]overlay=30:30[v]" \
+          -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
+          "processed_videos/06_support5.mp4"
+
+          # 7. Support Video 6 (Normal Video Display + Corner Logo)
+          ffmpeg -i support6.mp4 -i logo.png \
+          -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(1280-iw)/2:(720-ih)/2:black,fps=30[scaled];[1:v]scale=80:-1[slogo];[scaled][slogo]overlay=30:30[v]" \
+          -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
+          "processed_videos/07_support6.mp4"
+
+          # 8. Support Video 7 (Reusing Support Video 1 with Banner 1 Pulsing Effect + Corner Logo)
+          ffmpeg -i support1.mp4 -i banner1.png -i logo.png \
+          -filter_complex "[1:v]scale=1280:720,fps=30,zoompan=z='if(lte(mod(in_on,60),30),1.0+0.03*(mod(in_on,30)/30),1.0+0.03*(1-(mod(in_on,30)/30)))':d=1:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=1280x720[bg];[2:v]scale=80:-1[slogo];[bg][slogo]overlay=30:30[v]" \
+          -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
+          "processed_videos/08_support7.mp4"
+
+          # 9. Outro Audio + Big Center Veera Logo on Black Background
+          ffmpeg -i video_main.mp4 -i audio.mp3 -i veera_logo.png \
+          -filter_complex "[0:v]scale=1280:720,fps=30[vbg];[2:v]scale=350:-1[big_logo];[vbg][big_logo]overlay=(W-w)/2:(H-h)/2[v]" \
+          -map "[v]" -map 1:a \
+          -c:v libx264 -preset ultrafast -pix_fmt yuv420p \
+          -c:a aac -b:a 128k -ar 44100 -ac 2 \
+          -shortest \
+          "processed_videos/09_outro_audio.mp4"
+
+          # Playlist உருவாக்குதல் (வரிசைப்படி)
+          echo "file 'processed_videos/01_main.mp4'" > list.txt
+          echo "file 'processed_videos/02_support1.mp4'" >> list.txt
+          echo "file 'processed_videos/03_support2.mp4'" >> list.txt
+          echo "file 'processed_videos/04_support3.mp4'" >> list.txt
+          echo "file 'processed_videos/05_support4.mp4'" >> list.txt
+          echo "file 'processed_videos/06_support5.mp4'" >> list.txt
+          echo "file 'processed_videos/07_support6.mp4'" >> list.txt
+          echo "file 'processed_videos/08_support7.mp4'" >> list.txt
+          echo "file 'processed_videos/09_outro_audio.mp4'" >> list.txt
+
+          # Real-time RTMP Stream to YouTube (Lag மற்றும் Buffering இல்லாமைக்கான ஆப்டிமைஸ்டு செட்டிங்ஸ்)
           STREAM_KEY="${{ secrets.YOUTUBE_STREAM_KEY }}"
           STREAM_URL="rtmp://a.rtmp.youtube.com/live2"
 
-          # Process Flow:
-          # 1. Video odum pothu top-left corner-la chinna logo (scale=80)
-          # 2. Video mudinjathum black screen-la center-la periya logo (scale=350) mathum audio 5 murai loop aagum
-          # 3. Audio 5 murai mudinjathum automatic-a live END aagidgum
-          ffmpeg -re \
-          -i video.mp4 \
-          -stream_loop 4 -i audio.mp3 \
-          -i logo.png \
-          -filter_complex \
-          "[2:v]scale=80:-1[small_logo]; \
-           [0:v][small_logo]overlay=30:30[video_with_logo]; \
-           color=c=black:s=1280x720:r=30[black_bg]; \
-           [2:v]scale=350:-1[big_logo]; \
-           [black_bg][big_logo]overlay=(W-w)/2:(H-h)/2[audio_visual]; \
-           [video_with_logo][0:a][audio_visual][1:a]concat=n=2:v=1:a=1[v][a]" \
-          -map "[v]" -map "[a]" \
-          -c:v libx264 -preset ultrafast -b:v 2500k -maxrate 2500k -bufsize 5000k \
-          -pix_fmt yuv420p -g 60 \
+          ffmpeg -re -f concat -safe 0 -i list.txt \
+          -c:v libx264 -preset ultrafast -maxrate 3000k -bufsize 6000k -pix_fmt yuv420p -g 60 \
           -c:a aac -b:a 128k -ar 44100 \
           -f flv "$STREAM_URL/$STREAM_KEY"
