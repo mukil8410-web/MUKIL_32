@@ -10,6 +10,11 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Setup Node.js (Required for YouTube extraction)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
       - name: Install Tools
         run: |
           sudo apt-get update
@@ -20,7 +25,6 @@ jobs:
         run: |
           mkdir -p processed_videos
 
-          # Helper function for Google Drive
           dl_drive() {
             FILE_ID=$1
             OUTPUT=$2
@@ -28,7 +32,6 @@ jobs:
             curl -Lb cookies.txt "https://docs.google.com/uc?export=download&confirm=t&id=${FILE_ID}" -o "${OUTPUT}"
           }
 
-          # Helper function for YouTube
           dl_yt() {
             YT_URL=$1
             OUTPUT=$2
@@ -36,14 +39,12 @@ jobs:
           }
 
           echo "--- DOWNLOADING ASSETS ---"
-          # Banners & Assets from Google Drive
           dl_drive "1n0rK3UKajXutXvZVnxRkNGMQY9f-biKL" "banner3.png"
           dl_drive "1gIUHM1MZQOm0vQ23cnd8XZFo7SO2WvzW" "banner2.png"
           dl_drive "1Z5OfH81eQSa3ofyEj7jvTQvepppyhPY4" "banner5.png"
           dl_drive "1BXzP6HRt9F8VGa8APuxGtCgOaupygrUS" "audio.mp3"
           dl_drive "1WEu_-Z84_a8jXSsRaL_KBFgiJOTXbqp7" "logo_full.mp4"
 
-          # Videos from YouTube
           dl_yt "https://youtu.be/1u3V9I-f0kA" "main_vid.mp4"
           dl_yt "https://youtu.be/_9KxZLUy_KY" "sub1.mp4"
           dl_yt "https://youtu.be/Z_w5hRxbkrs" "sub2.mp4"
@@ -55,61 +56,51 @@ jobs:
 
       - name: Process and Merge All Videos
         run: |
-          # 1. Main Video (No banner, corner logo)
           ffmpeg -i main_vid.mp4 -i logo_full.mp4 \
           -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(1280-iw)/2:(720-ih)/2:black,fps=30[scaled];[1:v]scale=80:-1[slogo];[scaled][slogo]overlay=30:30[v]" \
           -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
           "processed_videos/01_main.mp4"
 
-          # 2. Sub Vid 1 (No banner, corner logo)
           ffmpeg -i sub1.mp4 -i logo_full.mp4 \
           -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(1280-iw)/2:(720-ih)/2:black,fps=30[scaled];[1:v]scale=80:-1[slogo];[scaled][slogo]overlay=30:30[v]" \
           -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
           "processed_videos/02_sub1.mp4"
 
-          # 3. Sub Vid 2 (Pulsing Banner 2)
           ffmpeg -i sub2.mp4 -i banner2.png -i logo_full.mp4 \
           -filter_complex "[1:v]scale=1400:1400,zoompan=z='min(zoom+0.0015,1.15)':d=150:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=1280x720,fps=30[bg];[0:v]scale=800:450[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2[combined];[2:v]scale=80:-1[slogo];[combined][slogo]overlay=30:30[v]" \
           -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
           "processed_videos/03_sub2.mp4"
 
-          # 4. Sub Vid 3 (No banner)
           ffmpeg -i sub3.mp4 -i logo_full.mp4 \
           -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(1280-iw)/2:(720-ih)/2:black,fps=30[scaled];[1:v]scale=80:-1[slogo];[scaled][slogo]overlay=30:30[v]" \
           -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
           "processed_videos/04_sub3.mp4"
 
-          # 5. Sub Vid 4 (Pulsing Banner 5)
           ffmpeg -i sub4.mp4 -i banner5.png -i logo_full.mp4 \
           -filter_complex "[1:v]scale=1400:1400,zoompan=z='min(zoom+0.0015,1.15)':d=150:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=1280x720,fps=30[bg];[0:v]scale=800:450[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2[combined];[2:v]scale=80:-1[slogo];[combined][slogo]overlay=30:30[v]" \
           -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
           "processed_videos/05_sub4.mp4"
 
-          # 6. Sub Vid 5 (No banner)
           ffmpeg -i sub5.mp4 -i logo_full.mp4 \
           -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(1280-iw)/2:(720-ih)/2:black,fps=30[scaled];[1:v]scale=80:-1[slogo];[scaled][slogo]overlay=30:30[v]" \
           -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
           "processed_videos/06_sub5.mp4"
 
-          # 7. Sub Vid 6 (No banner)
           ffmpeg -i sub6.mp4 -i logo_full.mp4 \
           -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(1280-iw)/2:(720-ih)/2:black,fps=30[scaled];[1:v]scale=80:-1[slogo];[scaled][slogo]overlay=30:30[v]" \
           -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
           "processed_videos/07_sub6.mp4"
 
-          # 8. Sub Vid 7 (Reusing Sub 1 / _9KxZLUy_KY with Pulsing Banner 3)
           ffmpeg -i sub1.mp4 -i banner3.png -i logo_full.mp4 \
           -filter_complex "[1:v]scale=1400:1400,zoompan=z='min(zoom+0.0015,1.15)':d=150:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=1280x720,fps=30[bg];[0:v]scale=800:450[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2[combined];[2:v]scale=80:-1[slogo];[combined][slogo]overlay=30:30[v]" \
           -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
           "processed_videos/08_sub7.mp4"
 
-          # 9. Sub Vid 8 (No banner)
           ffmpeg -i sub8.mp4 -i logo_full.mp4 \
           -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(1280-iw)/2:(720-ih)/2:black,fps=30[scaled];[1:v]scale=80:-1[slogo];[scaled][slogo]overlay=30:30[v]" \
           -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
           "processed_videos/09_sub8.mp4"
 
-          # 10. Outro Audio + Full Screen Banner/Logo
           ffmpeg -i logo_full.mp4 -i audio.mp3 -i banner5.png \
           -filter_complex "[0:v]scale=1280:720,fps=30[vbg];[2:v]scale=400:-1[big_banner];[vbg][big_banner]overlay=(W-w)/2:(H-h)/2[v]" \
           -map "[v]" -map 1:a \
@@ -118,7 +109,6 @@ jobs:
           -shortest \
           "processed_videos/10_outro.mp4"
 
-          # Playlist
           echo "file 'processed_videos/01_main.mp4'" > list.txt
           echo "file 'processed_videos/02_sub1.mp4'" >> list.txt
           echo "file 'processed_videos/03_sub2.mp4'" >> list.txt
@@ -130,7 +120,6 @@ jobs:
           echo "file 'processed_videos/09_sub8.mp4'" >> list.txt
           echo "file 'processed_videos/10_outro.mp4'" >> list.txt
 
-          # Final Merge
           ffmpeg -f concat -safe 0 -i list.txt -c:v libx264 -preset ultrafast -crf 23 -c:a aac -b:a 128k final_stream.mp4
 
       - name: Upload Final Video to GitHub Artifacts
