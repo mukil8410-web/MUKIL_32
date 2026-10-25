@@ -27,8 +27,8 @@ jobs:
           gdown "https://drive.google.com/uc?id=1_0bb04WyR8l2yi6AuHK9NDy-ewfZamCE" -O sub2.mp4
           gdown "https://drive.google.com/uc?id=1gIUHM1MZQOm0vQ23cnd8XZFo7SO2WvzW" -O banner2.png
 
-          # 3. Sub Vid 3 & Banner
-          gdown "https://drive.google.com/uc?id=10_ceQDBwZxtfn4hH0QpwKnDM5_FCG5g" -O sub3.mp4
+          # 3. Sub Vid 3 & Banner (Updated Link)
+          gdown "https://drive.google.com/uc?id=1O_ceQDBw2Xtfn4h4H0qpwKnDM5_FCG5g" -O sub3.mp4
           gdown "https://drive.google.com/uc?id=1n0rK3UKajXutXvZVnxRkNGMQY9f-biKL" -O banner3.png
 
           # 4. Sub Vid 4
