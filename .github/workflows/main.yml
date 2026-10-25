@@ -1,3 +1,4 @@
+
 name: Process and Merge Final 10 Videos
 
 on:
@@ -21,104 +22,104 @@ jobs:
           mkdir -p processed_videos
           
           # 1. Main Video
-          gdown "https://drive.google.com/uc?id=184Mkv-aOszZ8fzQtD9SL0_8768a5xI2f" -O main_video.mp4
+          gdown "https://drive.google.com/uc?id=184Mkv-aOszZ8fzQtD9SL0_8768a5xI2f" -O main_video.mp4[span_3](start_span)[span_3](end_span)
 
           # 2. Sub Vid 2 & Banner
-          gdown "https://drive.google.com/uc?id=1_0bb04WyR8l2yi6AuHK9NDy-ewfZamCE" -O sub2.mp4
-          gdown "https://drive.google.com/uc?id=1gIUHM1MZQOm0vQ23cnd8XZFo7SO2WvzW" -O banner2.png
+          gdown "https://drive.google.com/uc?id=1_0bb04WyR8l2yi6AuHK9NDy-ewfZamCE" -O sub2.mp4[span_4](start_span)[span_4](end_span)
+          gdown "https://drive.google.com/uc?id=1gIUHM1MZQOm0vQ23cnd8XZFo7SO2WvzW" -O banner2.png[span_5](start_span)[span_5](end_span)
 
-          # 3. Sub Vid 3 & Banner (Updated Link)
+          # 3. Sub Vid 3 & Banner
           gdown "https://drive.google.com/uc?id=1O_ceQDBw2Xtfn4h4H0qpwKnDM5_FCG5g" -O sub3.mp4
-          gdown "https://drive.google.com/uc?id=1n0rK3UKajXutXvZVnxRkNGMQY9f-biKL" -O banner3.png
+          gdown "https://drive.google.com/uc?id=1n0rK3UKajXutXvZVnxRkNGMQY9f-biKL" -O banner3.png[span_6](start_span)[span_6](end_span)
 
           # 4. Sub Vid 4
-          gdown "https://drive.google.com/uc?id=1SBnVWP9NE5NFgXNjv9vayiOEVZ49iUfg" -O sub4.mp4
+          gdown "https://drive.google.com/uc?id=1SBnVWP9NE5NFgXNjv9vayiOEVZ49iUfg" -O sub4.mp4[span_7](start_span)[span_7](end_span)
 
           # 5. Sub Vid 5 & Banner
-          gdown "https://drive.google.com/uc?id=1wV5XmAjm0ux6JhRPPiQw503d6JyI5WrE" -O sub5.mp4
-          gdown "https://drive.google.com/uc?id=1Z5OfH81eQSa3ofyEj7jvTQvepppyhPY4" -O banner5.png
+          gdown "https://drive.google.com/uc?id=1wV5XmAjm0ux6JhRPPiQw503d6JyI5WrE" -O sub5.mp4[span_8](start_span)[span_8](end_span)
+          gdown "https://drive.google.com/uc?id=1Z5OfH81eQSa3ofyEj7jvTQvepppyhPY4" -O banner5.png[span_9](start_span)[span_9](end_span)
 
           # 6. Sub Vid 6
-          gdown "https://drive.google.com/uc?id=1cvKVIDrGDTSEg_eD-Zj02cJxB3bYuAhg" -O sub6.mp4
+          gdown "https://drive.google.com/uc?id=1cvKVIDrGDTSEg_eD-Zj02cJxB3bYuAhg" -O sub6.mp4[span_10](start_span)[span_10](end_span)
 
           # 7. Sub Vid 7
-          gdown "https://drive.google.com/uc?id=1NTn7BjvGwvkU4Gq8uVSIEWNRLflx_Z00" -O sub7.mp4
+          gdown "https://drive.google.com/uc?id=1NTn7BjvGwvkU4Gq8uVSIEWNRLflx_Z00" -O sub7.mp4[span_11](start_span)[span_11](end_span)
 
           # 8. Sub Vid 8 (Reusing Sub Vid 2 & Banner 2)
           # sub2.mp4 and banner2.png are already downloaded
 
           # 9. Logo Full Video
-          gdown "https://drive.google.com/uc?id=1WEu_-Z84_a8jXSsRaL_KBFgiJOTXbqp7" -O logo_full.mp4
+          gdown "https://drive.google.com/uc?id=1WEu_-Z84_a8jXSsRaL_KBFgiJOTXbqp7" -O logo_full.mp4[span_12](start_span)[span_12](end_span)
 
           # 10. Outro Audio
-          gdown "https://drive.google.com/uc?id=1BXzP6HRt9F8VGa8APuxGtCgOaupygrUS" -O audio.mp3
+          gdown "https://drive.google.com/uc?id=1BXzP6HRt9F8VGa8APuxGtCgOaupygrUS" -O audio.mp3[span_13](start_span)[span_13](end_span)
 
       - name: Process and Merge All Videos
         run: |
-          # 1. Main Video: Corner Logo & Scaling
+          # 1. Main Video
           ffmpeg -i main_video.mp4 -i logo_full.mp4 \
           -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(1280-iw)/2:(720-ih)/2:black,fps=30[scaled];[1:v]scale=80:-1[slogo];[scaled][slogo]overlay=30:30[v]" \
-          -map "[v]" -map 0:a? -c:v libx264 -preset medium -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
+          -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
           "processed_videos/01_main.mp4"
 
-          # 2. Sub Vid 2 with Pulsing Banner
+          # 2. Sub Vid 2
           ffmpeg -i sub2.mp4 -i banner2.png -i logo_full.mp4 \
-          -filter_complex "[1:v]scale=1400:1400,zoompan=z='min(zoom+0.0015,1.15)':d=750:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=1280x720,fps=30[bg];[0:v]scale=800:450[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2[combined];[2:v]scale=80:-1[slogo];[combined][slogo]overlay=30:30[v]" \
-          -map "[v]" -map 0:a? -c:v libx264 -preset medium -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
+          -filter_complex "[1:v]scale=1400:1400,zoompan=z='min(zoom+0.0015,1.15)':d=150:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=1280x720,fps=30[bg];[0:v]scale=800:450[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2[combined];[2:v]scale=80:-1[slogo];[combined][slogo]overlay=30:30[v]" \
+          -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
           "processed_videos/02_sub2.mp4"
 
-          # 3. Sub Vid 3 with Pulsing Banner
+          # 3. Sub Vid 3
           ffmpeg -i sub3.mp4 -i banner3.png -i logo_full.mp4 \
-          -filter_complex "[1:v]scale=1400:1400,zoompan=z='min(zoom+0.0015,1.15)':d=750:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=1280x720,fps=30[bg];[0:v]scale=800:450[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2[combined];[2:v]scale=80:-1[slogo];[combined][slogo]overlay=30:30[v]" \
-          -map "[v]" -map 0:a? -c:v libx264 -preset medium -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
+          -filter_complex "[1:v]scale=1400:1400,zoompan=z='min(zoom+0.0015,1.15)':d=150:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=1280x720,fps=30[bg];[0:v]scale=800:450[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2[combined];[2:v]scale=80:-1[slogo];[combined][slogo]overlay=30:30[v]" \
+          -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
           "processed_videos/03_sub3.mp4"
 
           # 4. Sub Vid 4
           ffmpeg -i sub4.mp4 -i logo_full.mp4 \
           -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(1280-iw)/2:(720-ih)/2:black,fps=30[scaled];[1:v]scale=80:-1[slogo];[scaled][slogo]overlay=30:30[v]" \
-          -map "[v]" -map 0:a? -c:v libx264 -preset medium -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
+          -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
           "processed_videos/04_sub4.mp4"
 
-          # 5. Sub Vid 5 with Pulsing Banner
+          # 5. Sub Vid 5
           ffmpeg -i sub5.mp4 -i banner5.png -i logo_full.mp4 \
-          -filter_complex "[1:v]scale=1400:1400,zoompan=z='min(zoom+0.0015,1.15)':d=750:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=1280x720,fps=30[bg];[0:v]scale=800:450[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2[combined];[2:v]scale=80:-1[slogo];[combined][slogo]overlay=30:30[v]" \
-          -map "[v]" -map 0:a? -c:v libx264 -preset medium -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
+          -filter_complex "[1:v]scale=1400:1400,zoompan=z='min(zoom+0.0015,1.15)':d=150:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=1280x720,fps=30[bg];[0:v]scale=800:450[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2[combined];[2:v]scale=80:-1[slogo];[combined][slogo]overlay=30:30[v]" \
+          -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
           "processed_videos/05_sub5.mp4"
 
           # 6. Sub Vid 6
           ffmpeg -i sub6.mp4 -i logo_full.mp4 \
           -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(1280-iw)/2:(720-ih)/2:black,fps=30[scaled];[1:v]scale=80:-1[slogo];[scaled][slogo]overlay=30:30[v]" \
-          -map "[v]" -map 0:a? -c:v libx264 -preset medium -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
+          -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
           "processed_videos/06_sub6.mp4"
 
           # 7. Sub Vid 7
           ffmpeg -i sub7.mp4 -i logo_full.mp4 \
           -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(1280-iw)/2:(720-ih)/2:black,fps=30[scaled];[1:v]scale=80:-1[slogo];[scaled][slogo]overlay=30:30[v]" \
-          -map "[v]" -map 0:a? -c:v libx264 -preset medium -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
+          -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
           "processed_videos/07_sub7.mp4"
 
-          # 8. Sub Vid 8 (Reusing Sub Vid 2 with Pulsing Banner)
+          # 8. Sub Vid 8 (Reusing Sub Vid 2)
           ffmpeg -i sub2.mp4 -i banner2.png -i logo_full.mp4 \
-          -filter_complex "[1:v]scale=1400:1400,zoompan=z='min(zoom+0.0015,1.15)':d=750:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=1280x720,fps=30[bg];[0:v]scale=800:450[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2[combined];[2:v]scale=80:-1[slogo];[combined][slogo]overlay=30:30[v]" \
-          -map "[v]" -map 0:a? -c:v libx264 -preset medium -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
+          -filter_complex "[1:v]scale=1400:1400,zoompan=z='min(zoom+0.0015,1.15)':d=150:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=1280x720,fps=30[bg];[0:v]scale=800:450[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2[combined];[2:v]scale=80:-1[slogo];[combined][slogo]overlay=30:30[v]" \
+          -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
           "processed_videos/08_sub8.mp4"
 
-          # 9. Logo Full Video
+          # 9. Logo Video
           ffmpeg -i logo_full.mp4 -i logo_full.mp4 \
           -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(1280-iw)/2:(720-ih)/2:black,fps=30[scaled];[1:v]scale=80:-1[slogo];[scaled][slogo]overlay=30:30[v]" \
-          -map "[v]" -map 0:a? -c:v libx264 -preset medium -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
+          -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k -ar 44100 -ac 2 \
           "processed_videos/09_logo_video.mp4"
 
-          # 10. Outro Audio + Full Screen Logo
+          # 10. Outro Audio
           ffmpeg -i logo_full.mp4 -i audio.mp3 -i logo_full.mp4 \
           -filter_complex "[0:v]scale=1280:720,fps=30[vbg];[2:v]scale=350:-1[big_logo];[vbg][big_logo]overlay=(W-w)/2:(H-h)/2[v]" \
           -map "[v]" -map 1:a \
-          -c:v libx264 -preset medium -crf 23 -pix_fmt yuv420p \
+          -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p \
           -c:a aac -b:a 128k -ar 44100 -ac 2 \
           -shortest \
           "processed_videos/10_outro.mp4"
 
-          # Playlist உருவாக்குதல்
+          # Playlist
           echo "file 'processed_videos/01_main.mp4'" > list.txt
           echo "file 'processed_videos/02_sub2.mp4'" >> list.txt
           echo "file 'processed_videos/03_sub3.mp4'" >> list.txt
@@ -130,8 +131,8 @@ jobs:
           echo "file 'processed_videos/09_logo_video.mp4'" >> list.txt
           echo "file 'processed_videos/10_outro.mp4'" >> list.txt
 
-          # அனைத்து வீடியோக்களையும் இணைத்தல்
-          ffmpeg -f concat -safe 0 -i list.txt -c:v libx264 -preset medium -crf 23 -c:a aac -b:a 128k final_stream.mp4
+          # Final Merge
+          ffmpeg -f concat -safe 0 -i list.txt -c:v libx264 -preset ultrafast -crf 23 -c:a aac -b:a 128k final_stream.mp4
 
       - name: Check Video Duration Before Download
         run: |
@@ -155,3 +156,4 @@ jobs:
         with:
           name: merged-final-video
           path: final_stream.mp4
+
