@@ -20,7 +20,6 @@ jobs:
 
       - name: Download Files
         run: |
-          # Helper function for Google Drive
           dl_drive() {
             FILE_ID=$1
             OUTPUT=$2
@@ -29,16 +28,16 @@ jobs:
           }
 
           echo "--- DOWNLOADING ASSETS ---"
-          # 1. Main Video Download (Truncated to 51 minutes / 3060 seconds)
+          # 1. Main Video (Truncated to 51 minutes / 3060 seconds)
           dl_drive "184Mkv-aOszZ8fzQtD9SL0_8768a5xI2f" "main_video.mp4"
 
-          # 2. Support Video Download
+          # 2. Support Video
           dl_drive "1CCsq1Kp0atYimfPT-v41sfJGjSPOV5Y2" "support_video.mp4"
 
-          # 3. Logo Download (Updated Link)
+          # 3. Logo
           dl_drive "1WEu_-Z84_a8jXSsRaL_KBFgiJOTXbqp7" "logo.png"
 
-          # 4. Audio Download (Updated Link)
+          # 4. Outro Audio
           dl_drive "1BXzP6HRt9F8VGa8APuxGtCgOaupygrUS" "audio.mp3"
 
       - name: Start Live Stream to YouTube
@@ -46,40 +45,40 @@ jobs:
           STREAM_KEY="${{ secrets.YOUTUBE_STREAM_KEY }}"
           STREAM_URL="rtmp://a.rtmp.youtube.com/live2"
 
-          # Step 1: Trim Main Video to exact 51 minutes (3060 seconds) & add corner logo
+          # Step 1: Main Video (51 mins + Corner Logo)
           ffmpeg -i main_video.mp4 -i logo.png \
           -t 3060 \
           -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(1280-iw)/2:(720-ih)/2:black,fps=30[scaled];[1:v]scale=80:-1[slogo];[scaled][slogo]overlay=30:30[v]" \
           -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k part1_main.mp4
 
-          # Step 2: Process Support Video 1
+          # Step 2: Support Video 1 (Corner Logo only, no big logo/extra audio)
           ffmpeg -i support_video.mp4 -i logo.png \
           -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(1280-iw)/2:(720-ih)/2:black,fps=30[scaled];[1:v]scale=80:-1[slogo];[scaled][slogo]overlay=30:30[v]" \
           -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k part2_support1.mp4
 
-          # Step 3: Outro Audio & Big Logo 1
+          # Step 3: Outro 1 (Audio + Big Center Logo)
           ffmpeg -i logo.png -i audio.mp3 \
           -filter_complex "[0:v]scale=1280:720,fps=30[vbg];[0:v]scale=350:-1[big_logo];[vbg][big_logo]overlay=(W-w)/2:(H-h)/2[v]" \
           -map "[v]" -map 1:a -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k -shortest part3_outro1.mp4
 
-          # Step 4: Process Support Video 2
+          # Step 4: Support Video 2 (Corner Logo only)
           ffmpeg -i support_video.mp4 -i logo.png \
           -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(1280-iw)/2:(720-ih)/2:black,fps=30[scaled];[1:v]scale=80:-1[slogo];[scaled][slogo]overlay=30:30[v]" \
           -map "[v]" -map 0:a? -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k part4_support2.mp4
 
-          # Step 5: Outro Audio & Big Logo 2
+          # Step 5: Outro 2 (Audio + Big Center Logo)
           ffmpeg -i logo.png -i audio.mp3 \
           -filter_complex "[0:v]scale=1280:720,fps=30[vbg];[0:v]scale=350:-1[big_logo];[vbg][big_logo]overlay=(W-w)/2:(H-h)/2[v]" \
           -map "[v]" -map 1:a -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -c:a aac -b:a 128k -shortest part5_outro2.mp4
 
-          # Create playlist for final sequential streaming
+          # Playlist creation
           echo "file 'part1_main.mp4'" > playlist.txt
           echo "file 'part2_support1.mp4'" >> playlist.txt
           echo "file 'part3_outro1.mp4'" >> playlist.txt
           echo "file 'part4_support2.mp4'" >> playlist.txt
           echo "file 'part5_outro2.mp4'" >> playlist.txt
 
-          # Stream sequentially to YouTube Live
+          # Stream to YouTube Live
           ffmpeg -re -f concat -safe 0 -i playlist.txt \
           -c:v libx264 -preset ultrafast -b:v 2500k -maxrate 2500k -bufsize 5000k \
           -pix_fmt yuv420p -g 60 \
