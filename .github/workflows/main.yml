@@ -14,50 +14,55 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg python3-pip curl
-          pip3 install gdown
+          pip3 install --upgrade gdown
 
       - name: Download Files from Google Drive
         run: |
           mkdir -p processed_videos
 
-          download_drive() {
+          download_file() {
             FILE_ID=$1
             OUTPUT=$2
-            gdown "https://drive.google.com/uc?id=${FILE_ID}" -O "${OUTPUT}" --fuzzy || \
-            curl -L "https://docs.google.com/uc?export=download&id=${FILE_ID}" -o "${OUTPUT}"
+            echo "Downloading ${OUTPUT}..."
+            gdown --fuzzy "https://drive.google.com/uc?id=${FILE_ID}" -O "${OUTPUT}"
+            
+            # Check if downloaded file is accidentally an HTML error page
+            if grep -q "<html>" "${OUTPUT}" 2>/dev/null; then
+              echo "Error: ${OUTPUT} downloaded as HTML instead of video. Retrying with alternative link..."
+              rm -f "${OUTPUT}"
+              curl -Lb cookies.txt "https://docs.google.com/uc?export=download&confirm=t&id=${FILE_ID}" -o "${OUTPUT}"
+            fi
           }
           
           # 1. Main Video
-          download_drive "184Mkv-aOszZ8fzQtD9SL0_8768a5xI2f" "main_video.mp4"
+          download_file "184Mkv-aOszZ8fzQtD9SL0_8768a5xI2f" "main_video.mp4"
 
           # 2. Sub Vid 2 & Banner
-          download_drive "1_0bb04WyR8l2yi6AuHK9NDy-ewfZamCE" "sub2.mp4"
-          download_drive "1gIUHM1MZQOm0vQ23cnd8XZFo7SO2WvzW" "banner2.png"
+          download_file "1_0bb04WyR8l2yi6AuHK9NDy-ewfZamCE" "sub2.mp4"
+          download_file "1gIUHM1MZQOm0vQ23cnd8XZFo7SO2WvzW" "banner2.png"
 
           # 3. Sub Vid 3 & Banner
-          download_drive "1O_ceQDBw2Xtfn4h4H0qpwKnDM5_FCG5g" "sub3.mp4"
-          download_drive "1n0rK3UKajXutXvZVnxRkNGMQY9f-biKL" "banner3.png"
+          download_file "1O_ceQDBw2Xtfn4h4H0qpwKnDM5_FCG5g" "sub3.mp4"
+          download_file "1n0rK3UKajXutXvZVnxRkNGMQY9f-biKL" "banner3.png"
 
           # 4. Sub Vid 4
-          download_drive "1SBnVWP9NE5NFgXNjv9vayiOEVZ49iUfg" "sub4.mp4"
+          download_file "1SBnVWP9NE5NFgXNjv9vayiOEVZ49iUfg" "sub4.mp4"
 
           # 5. Sub Vid 5 & Banner
-          download_drive "1wV5XmAjm0ux6JhRPPiQw503d6JyI5WrE" "sub5.mp4"
-          download_drive "1Z5OfH81eQSa3ofyEj7jvTQvepppyhPY4" "banner5.png"
+          download_file "1wV5XmAjm0ux6JhRPPiQw503d6JyI5WrE" "sub5.mp4"
+          download_file "1Z5OfH81eQSa3ofyEj7jvTQvepppyhPY4" "banner5.png"
 
           # 6. Sub Vid 6
-          download_drive "1cvKVIDrGDTSEg_eD-Zj02cJxB3bYuAhg" "sub6.mp4"
+          download_file "1cvKVIDrGDTSEg_eD-Zj02cJxB3bYuAhg" "sub6.mp4"
 
           # 7. Sub Vid 7
-          download_drive "1NTn7BjvGwvkU4Gq8uVSIEWNRLflx_Z00" "sub7.mp4"
-
-          # 8. Sub Vid 8 (Reusing Sub Vid 2 & Banner 2)
+          download_file "1NTn7BjvGwvkU4Gq8uVSIEWNRLflx_Z00" "sub7.mp4"
 
           # 9. Logo Full Video
-          download_drive "1WEu_-Z84_a8jXSsRaL_KBFgiJOTXbqp7" "logo_full.mp4"
+          download_file "1WEu_-Z84_a8jXSsRaL_KBFgiJOTXbqp7" "logo_full.mp4"
 
           # 10. Outro Audio
-          download_drive "1BXzP6HRt9F8VGa8APuxGtCgOaupygrUS" "audio.mp3"
+          download_file "1BXzP6HRt9F8VGa8APuxGtCgOaupygrUS" "audio.mp3"
 
       - name: Process and Merge All Videos
         run: |
