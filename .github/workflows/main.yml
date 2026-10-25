@@ -13,8 +13,7 @@ jobs:
       - name: Install Tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg python3-pip curl
-          pip3 install --upgrade gdown
+          sudo apt-get install -y ffmpeg curl
 
       - name: Download Files from Google Drive
         run: |
@@ -24,13 +23,11 @@ jobs:
             FILE_ID=$1
             OUTPUT=$2
             echo "Downloading ${OUTPUT}..."
-            gdown --fuzzy "https://drive.google.com/uc?id=${FILE_ID}" -O "${OUTPUT}"
+            curl -Lb cookies.txt "https://docs.google.com/uc?export=download&confirm=t&id=${FILE_ID}" -o "${OUTPUT}"
             
-            # Check if downloaded file is accidentally an HTML error page
+            # If download fails or gets html page, try alternative link
             if grep -q "<html>" "${OUTPUT}" 2>/dev/null; then
-              echo "Error: ${OUTPUT} downloaded as HTML instead of video. Retrying with alternative link..."
-              rm -f "${OUTPUT}"
-              curl -Lb cookies.txt "https://docs.google.com/uc?export=download&confirm=t&id=${FILE_ID}" -o "${OUTPUT}"
+              curl -L "https://drive.google.com/uc?export=download&id=${FILE_ID}" -o "${OUTPUT}"
             fi
           }
           
