@@ -22,14 +22,13 @@ jobs:
       - name: Download Files
         run: |
           # 1. Main Video Download
-          gdown "https://drive.google.com/uc?id=1Ct1lcZzHEK4XjZ9xCZffWwCSo-s63knV" -O video.mp4
+          gdown "https://drive.google.com/file/d/184Mkv-aOszZ8fzQtD9SL0_8768a5xI2f/view?usp=sharing" -O video.mp4
 
           # 2. Logo Download
           gdown "https://drive.google.com/uc?id=18STkB9gIB6xEZq3ZUbx8usnEANucjjuH" -O logo.png
 
           # 3. Audio Download
-          gdown "https://drive.google.com/uc?id=1BXzP6HRt9F8VGa8APuxGtCgOaupygrUS" -O audio.mp3
-
+          gdown "https://drive.google.com/file/d/1CCsq1Kp0atYimfPT-v41sfJGjSPOV5Y2/view?usp=sharing"
       - name: Start Live Stream to YouTube
         run: |
           STREAM_KEY="${{ secrets.YOUTUBE_STREAM_KEY }}"
