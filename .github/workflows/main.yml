@@ -43,7 +43,7 @@ jobs:
           gdown "https://drive.google.com/uc?id=1WEu_-Z84_a8jXSsRaL_KBFgiJOTXbqp7" -O veera_logo.png
           gdown "https://drive.google.com/uc?id=1BXzP6HRt9F8VGa8APuxGtCgOaupygrUS" -O audio.mp3
 
-      - name: Process and Stream Directly
+      - name: Process and Merge All Videos
         run: |
           # 1. Main Video: Corner Logo & Scaling
           ffmpeg -i video_main.mp4 -i logo.png \
@@ -113,11 +113,16 @@ jobs:
           echo "file 'processed_videos/08_support7.mp4'" >> list.txt
           echo "file 'processed_videos/09_outro_audio.mp4'" >> list.txt
 
-          # Real-time RTMP Stream to YouTube
+          # அனைத்து வீடியோக்களையும் ஒரே சிங்கிள் கோப்பாக முன்கூட்டியே இணைத்தல் (Zero interruption)
+          ffmpeg -f concat -safe 0 -i list.txt -c copy final_stream.mp4
+
+      - name: Stream Directly to YouTube
+        run: |
           STREAM_KEY="${{ secrets.YOUTUBE_STREAM_KEY }}"
           STREAM_URL="rtmp://a.rtmp.youtube.com/live2"
 
-          ffmpeg -re -f concat -safe 0 -i list.txt \
+          # ஒரே ஸ்ட்ரீம் கமாண்ட் மூலம் இடையூறு இல்லாமல் யூடியூபிற்கு அனுப்புதல்
+          ffmpeg -re -i final_stream.mp4 \
           -c:v libx264 -preset ultrafast -maxrate 3000k -bufsize 6000k -pix_fmt yuv420p -g 60 \
           -c:a aac -b:a 128k -ar 44100 \
           -f flv "$STREAM_URL/$STREAM_KEY"
