@@ -1,10 +1,7 @@
-name: YouTube Live Stream with Logo and Audio
+name: Simple YouTube Live Stream
 
 on:
   workflow_dispatch:
-  schedule:
-    # Seriyaana nerathil (8:20 PM IST / 14:50 UTC) automatic-a start aagum
-    - cron: '50 14 * * *'
 
 jobs:
   stream:
@@ -19,37 +16,34 @@ jobs:
           sudo apt-get install -y ffmpeg python3-pip
           pip3 install gdown
 
-      - name: Download Files
+      - name: Download Files Without Errors
         run: |
-          # 1. Main Video Download
-          gdown "https://drive.google.com/file/d/184Mkv-aOszZ8fzQtD9SL0_8768a5xI2f/view?usp=sharing" -O video.mp4
+          # Robust download function handling Google Drive permissions and large files
+          dl_drive() {
+            FILE_ID=$1
+            OUTPUT=$2
+            gdown "https://drive.google.com/uc?id=${FILE_ID}" -O "${OUTPUT}" || \
+            curl -Lb cookies.txt "https://docs.google.com/uc?export=download&confirm=t&id=${FILE_ID}" -o "${OUTPUT}"
+          }
 
-          # 2. Logo Download
-          gdown "https://drive.google.com/uc?id=18STkB9gIB6xEZq3ZUbx8usnEANucjjuH" -O logo.png
+          echo "--- DOWNLOADING ASSETS ---"
+          # 1. Video Download
+          dl_drive "184Mkv-aOszZ8fzQtD9SL0_8768a5xI2f" "video.mp4"
 
-          # 3. Audio Download
-          gdown "https://drive.google.com/file/d/1CCsq1Kp0atYimfPT-v41sfJGjSPOV5Y2/view?usp=sharing"
+          # 2. Logo Download (Updated Link)
+          dl_drive "1WEu_-Z84_a8jXSsRaL_KBFgiJOTXbqp7" "logo.png"
+
       - name: Start Live Stream to YouTube
         run: |
           STREAM_KEY="${{ secrets.YOUTUBE_STREAM_KEY }}"
           STREAM_URL="rtmp://a.rtmp.youtube.com/live2"
 
-          # Process Flow:
-          # 1. Video odum pothu top-left corner-la chinna logo (scale=80)
-          # 2. Video mudinjathum black screen-la center-la periya logo (scale=350) mathum audio 5 murai loop aagum
-          # 3. Audio 5 murai mudinjathum automatic-a live END aagidgum
+          # Stream video in a continuous loop with top-left corner logo overlay
           ffmpeg -re \
-          -i video.mp4 \
-          -stream_loop 4 -i audio.mp3 \
+          -stream_loop -1 -i video.mp4 \
           -i logo.png \
-          -filter_complex \
-          "[2:v]scale=80:-1[small_logo]; \
-           [0:v][small_logo]overlay=30:30[video_with_logo]; \
-           color=c=black:s=1280x720:r=30[black_bg]; \
-           [2:v]scale=350:-1[big_logo]; \
-           [black_bg][big_logo]overlay=(W-w)/2:(H-h)/2[audio_visual]; \
-           [video_with_logo][0:a][audio_visual][1:a]concat=n=2:v=1:a=1[v][a]" \
-          -map "[v]" -map "[a]" \
+          -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(1280-iw)/2:(720-ih)/2:black,fps=30[scaled];[1:v]scale=80:-1[slogo];[scaled][slogo]overlay=30:30[v]" \
+          -map "[v]" -map 0:a? \
           -c:v libx264 -preset ultrafast -b:v 2500k -maxrate 2500k -bufsize 5000k \
           -pix_fmt yuv420p -g 60 \
           -c:a aac -b:a 128k -ar 44100 \
