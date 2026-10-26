@@ -27,10 +27,10 @@ jobs:
           }
 
           echo "--- DOWNLOADING ASSETS ---"
-          # 1. Video Download
-          dl_drive "184Mkv-aOszZ8fzQtD9SL0_8768a5xI2f" "video.mp4"
+          # 1. New Main Video Download
+          dl_drive "1K5NgbW3Oparfy2rN5VLlac6W8IGdkFLS" "video.mp4"
 
-          # 2. Logo Download (Updated Link)
+          # 2. Logo Download
           dl_drive "1WEu_-Z84_a8jXSsRaL_KBFgiJOTXbqp7" "logo.png"
 
       - name: Start Live Stream to YouTube
