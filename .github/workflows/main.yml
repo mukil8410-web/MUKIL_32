@@ -1,4 +1,4 @@
-name: Simple YouTube Live Stream
+name: Veera Single Video Live Stream
 
 on:
   workflow_dispatch:
@@ -10,40 +10,36 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Install Tools
+      - name: Install Dependencies (FFmpeg & Python)
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg python3-pip
           pip3 install gdown
 
-      - name: Download Files Without Errors
+      - name: Download Video from Google Drive
         run: |
-          # Robust download function handling Google Drive permissions and large files
-          dl_drive() {
-            FILE_ID=$1
-            OUTPUT=$2
-            gdown "https://drive.google.com/uc?id=${FILE_ID}" -O "${OUTPUT}" || \
-            curl -Lb cookies.txt "https://docs.google.com/uc?export=download&confirm=t&id=${FILE_ID}" -o "${OUTPUT}"
-          }
+          # Kurippitta Google Drive File ID
+          FILE_ID="1bZOvVQj3hhfnd3gpjOXZ6wFqEiz8OULp"
+          
+          echo "Downloading video from Google Drive..."
+          gdown "https://drive.google.com/uc?id=${FILE_ID}" -O "video.mp4" || \
+          curl -Lb cookies.txt "https://docs.google.com/uc?export=download&confirm=t&id=${FILE_ID}" -o "video.mp4"
+          
+          # Check if file downloaded successfully
+          if [ ! -f "video.mp4" ] || [ ! -s "video.mp4" ]; then
+            echo "Error: Video download failed!"
+            exit 1
+          fi
 
-          echo "--- DOWNLOADING ASSETS ---"
-          # 1. New Main Video Download
-          dl_drive "1K5NgbW3Oparfy2rN5VLlac6W8IGdkFLS" "video.mp4"
-
-          # 2. Logo Download
-          dl_drive "1WEu_-Z84_a8jXSsRaL_KBFgiJOTXbqp7" "logo.png"
-
-      - name: Start Live Stream to YouTube
+      - name: Start YouTube Live Stream
         run: |
+          # GitHub Secrets-il "YOUTUBE_STREAM_KEY" enra peyaril ungal stream key-ai save seyyavum
           STREAM_KEY="${{ secrets.YOUTUBE_STREAM_KEY }}"
           STREAM_URL="rtmp://a.rtmp.youtube.com/live2"
 
-          # Stream video in a continuous loop with top-left corner logo overlay
+          echo "Starting FFmpeg live streaming..."
           ffmpeg -re \
           -stream_loop -1 -i video.mp4 \
-          -i logo.png \
-          -filter_complex "[0:v]scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(1280-iw)/2:(720-ih)/2:black,fps=30[scaled];[1:v]scale=80:-1[slogo];[scaled][slogo]overlay=30:30[v]" \
-          -map "[v]" -map 0:a? \
           -c:v libx264 -preset ultrafast -b:v 2500k -maxrate 2500k -bufsize 5000k \
           -pix_fmt yuv420p -g 60 \
           -c:a aac -b:a 128k -ar 44100 \
