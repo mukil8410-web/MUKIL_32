@@ -18,8 +18,8 @@ jobs:
 
       - name: Download Video from Google Drive
         run: |
-          # Kurippitta Google Drive File ID
-          FILE_ID="1bZOvVQj3hhfnd3gpjOXZ6wFqEiz8OULp"
+          # Updated Google Drive File ID
+          FILE_ID="1EXDTek6JVcK7zglJM7NylUmQEy6HnsPH"
           
           echo "Downloading video from Google Drive..."
           gdown "https://drive.google.com/uc?id=${FILE_ID}" -O "video.mp4" || \
@@ -33,7 +33,6 @@ jobs:
 
       - name: Start YouTube Live Stream
         run: |
-          # GitHub Secrets-il "YOUTUBE_STREAM_KEY" enra peyaril ungal stream key-ai save seyyavum
           STREAM_KEY="${{ secrets.YOUTUBE_STREAM_KEY }}"
           STREAM_URL="rtmp://a.rtmp.youtube.com/live2"
 
