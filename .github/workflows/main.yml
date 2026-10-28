@@ -22,27 +22,27 @@ jobs:
           pip3 install --upgrade pip
           pip3 install yt-dlp gdown
 
-      - name: Download Video and Logo
+      - name: Download Video and Logo from Google Drive
         run: |
+          # 1. லைவ் செய்ய வேண்டிய வீடியோவை டவுன்லோட் செய்தல்
           URL="${{ github.event.inputs.media_url }}"
-          echo "Processing URL: $URL"
+          echo "Processing Video URL: $URL"
 
-          # 1. வீடியோவை டவுன்லோட் செய்தல் (Google Drive அல்லது YouTube)
           if [[ "$URL" == *"drive.google.com"* ]]; then
-            echo "Google Drive லிங்க் கண்டுபிடிக்கப்பட்டது..."
-            FILE_ID=$(echo "$URL" | grep -oP '(?<=/d/)[^/]+' || echo "$URL" | grep -oP '(?<=id=)[^&]+')
-            gdown "https://drive.google.com/uc?id=${FILE_ID}" -O "video.mp4" || \
-            gdown "https://drive.google.com/uc?export=download&id=${FILE_ID}" -O "video.mp4"
+            echo "Google Drive வீடியோ லிங்க் கண்டுபிடிக்கப்பட்டது..."
+            VIDEO_ID=$(echo "$URL" | grep -oP '(?<=/d/)[^/]+' || echo "$URL" | grep -oP '(?<=id=)[^&]+')
+            gdown "https://drive.google.com/uc?id=${VIDEO_ID}" -O "video.mp4" || \
+            gdown "https://drive.google.com/uc?export=download&id=${VIDEO_ID}" -O "video.mp4"
           else
             echo "YouTube / பிற தள லிங்க் கண்டுபிடிக்கப்பட்டது..."
             yt-dlp -f "best[ext=mp4]/best" -o "video.mp4" "$URL"
           fi
 
-          # 2. மாறாத நிரந்தர லோகோவை டவுன்லோட் செய்தல் (Permanent Logo)
-          # கீழே உள்ள 'YOUR_LOGO_DIRECT_LINK_HERE' என்ற இடத்தில் உனது லோகோவின் நேரடி (Direct Image) லிங்க்கை போடவும்
-          LOGO_URL="YOUR_LOGO_DIRECT_LINK_HERE"
+          # 2. நிரந்தர லோகோவை Google Drive-லிருந்து டவுன்லோட் செய்தல்
           echo "நிரந்தர லோகோ டவுன்லோட் செய்யப்படுகிறது..."
-          curl -L "$LOGO_URL" -o "logo.png"
+          LOGO_ID="1WEu_-Z84_a8jXSsRaL_KBFgiJOTXbqp7"
+          gdown "https://drive.google.com/uc?id=${LOGO_ID}" -O "logo.png" || \
+          gdown "https://drive.google.com/uc?export=download&id=${LOGO_ID}" -O "logo.png"
 
           # கோப்புகள் சரியாக டவுன்லோட் ஆகியுள்ளதா என சோதித்தல்
           if [ ! -f "video.mp4" ] || [ ! -s "video.mp4" ]; then
@@ -50,17 +50,23 @@ jobs:
             exit 1
           fi
 
-      - name: Start YouTube Live Stream with Logo Overlay
+          if [ ! -f "logo.png" ] || [ ! -s "logo.png" ]; then
+            echo "பிழை: லோகோ டவுன்லோட் ஆகவில்லை!"
+            exit 1
+          fi
+
+      - name: Start YouTube Live Stream with Medium Size Logo Overlay
         run: |
           STREAM_KEY="${{ secrets.YOUTUBE_STREAM_KEY }}"
           STREAM_URL="rtmp://a.rtmp.youtube.com/live2"
 
-          echo "FFmpeg மூலம் லோகோவுடன் லைவ் ஸ்ட்ரீமிங் தொடங்குகிறது..."
-          # இந்த எஃப்.எம்.பி.ஜி கட்டளை வீடியோவின் மேல் மூலையில் லோகோவை நிலையாகப் பொருத்தி லைவ் செய்யும்
+          echo "FFmpeg மூலம் நடுத்தர அளவு (Medium Size) லோகோவுடன் லைவ் ஸ்ட்ரீமிங் தொடங்குகிறது..."
+          
+          # scale=120:-1 என்பது லோகோவின் அகலத்தை 120 பிக்சல்களாக (மீடியம் சைஸ்) மாற்றி கார்னரில் வைக்கும்
           ffmpeg -re \
           -stream_loop -1 -i video.mp4 \
           -i logo.png \
-          -filter_complex "overlay=W-w-20:20" \
+          -filter_complex "[1:v]scale=120:-1[logo];[0:v][logo]overlay=W-w-25:25" \
           -c:v libx264 -preset ultrafast -b:v 2500k -maxrate 2500k -bufsize 5000k \
           -pix_fmt yuv420p -g 60 \
           -c:a aac -b:a 128k -ar 44100 \
