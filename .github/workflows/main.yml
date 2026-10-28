@@ -1,4 +1,4 @@
-name: Veera Universal Live Stream with Logo
+name: Veera intro Live Stream with Logo
 
 on:
   workflow_dispatch:
