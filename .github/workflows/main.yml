@@ -60,9 +60,9 @@ jobs:
           STREAM_KEY="${{ secrets.YOUTUBE_STREAM_KEY }}"
           STREAM_URL="rtmp://a.rtmp.youtube.com/live2"
 
-          echo "FFmpeg மூலம் நடுத்தர அளவு (Medium Size) லோகோவுடன் லைவ் ஸ்ட்ரீமிங் தொடங்குகிறது..."
+          echo "FFmpeg மூலம் நடுத்தர அளவு லோகோவுடன் லைவ் ஸ்ட்ரீமிங் தொடங்குகிறது..."
           
-          # scale=120:-1 என்பது லோகோவின் அகலத்தை 120 பிக்சல்களாக (மீடியம் சைஸ்) மாற்றி கார்னரில் வைக்கும்
+          # scale=120:-1 மூலம் லோகோ மீடியம் சைஸில் கார்னரில் மிகச் சரியாகப் பொருந்தும்
           ffmpeg -re \
           -stream_loop -1 -i video.mp4 \
           -i logo.png \
